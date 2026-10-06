@@ -57,3 +57,24 @@ def test_same_slot_lags_are_target_aligned_and_respect_the_cutoff():
     np.testing.assert_allclose(X.lag_d2.to_numpy() * scale, d2, rtol=1e-5)
     np.testing.assert_allclose(X.latest_same_slot.to_numpy() * scale,
                                np.where(known_d1, d1, d2), rtol=1e-5)
+
+
+def test_portfolio_signals_are_shared_by_all_households():
+    arrays = _arrays()
+    X, _, _ = build_design(arrays, np.array([45]))
+    n_hh = len(arrays["ids"])
+    for name in ("pf_level_4h", "pf_level_1d", "pf_trend_1d_7d", "pf_morning_trend"):
+        per_row = X[name].to_numpy().reshape(-1, n_hh)
+        assert np.isfinite(per_row).all()
+        np.testing.assert_array_equal(per_row, per_row[:, :1].repeat(n_hh, axis=1))
+
+
+def test_holiday_flags_follow_the_local_calendar():
+    from utils.level0 import HIST_START
+    arrays = _arrays(n_days=130)
+    christmas = (pd.Timestamp("2020-12-25", tz="UTC") - HIST_START).days
+    X, _, _ = build_design(arrays, np.array([christmas]))
+    local_noon = X.local_slot.to_numpy() == 48
+    assert (X.is_holiday.to_numpy()[local_noon] == 1).all()
+    assert (X.christmas_period.to_numpy()[local_noon] == 1).all()
+    assert (X.lag_d2_is_holiday.to_numpy()[local_noon] == 0).all()  # 23 Dec is a normal day

@@ -31,6 +31,7 @@ import time
 import warnings
 from pathlib import Path
 
+import holidays
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
@@ -59,6 +60,7 @@ FOLDS = {
 }
 VALIDATION_FOLDS = ("val_summer", "val_winter")
 SCALE_DAYS = 28
+GERMAN_HOLIDAYS = holidays.Germany(years=range(HIST_START.year, END.year + 1))  # nationwide only
 MAX_TRAIN_ROWS = 4_000_000
 LGB_PARAMS = {
     "n_estimators": 600, "learning_rate": 0.05, "num_leaves": 63,
@@ -174,10 +176,30 @@ def build_design(arrays: dict, days: np.ndarray) -> tuple[pd.DataFrame, np.ndarr
         feats["slot_mean_4w"] = np.nanmean(week_lags, axis=0) / s3
     # Hourly-smoothed same slot on D-2 (trailing 1 h, always before the cutoff).
     feats["lag_d2_hour"] = np.mean(np.stack([lag(192 + j) for j in range(4)]), axis=0) / s3
+    def per_day(values: np.ndarray) -> np.ndarray:                   # (D, N) -> (D, 96, N)
+        return np.broadcast_to(values[:, None, :], (D, 96, n_hh))
+
     # Recent level up to the cutoff, relative to the 28-day scale.
-    for name, length in (("level_4h", 16), ("level_1d", 96), ("level_7d", 672)):
-        feats[name] = np.broadcast_to((_window_mean(cs, cnt, cutoff, length) / scale)[:, None, :], (D, 96, n_hh))
-    feats["log_scale"] = np.broadcast_to(np.log(scale)[:, None, :], (D, 96, n_hh))
+    levels = {name: _window_mean(cs, cnt, cutoff, length) / scale
+              for name, length in (("level_4h", 16), ("level_1d", 96), ("level_7d", 672))}
+    for name, values in levels.items():
+        feats[name] = per_day(values)
+    feats["log_scale"] = per_day(np.log(scale))
+    # Level change on its first day: D-1 morning (00:00 to the cutoff) vs D-2 morning.
+    morning = DAY_AHEAD.steps_per_day - DAY_AHEAD.gap_steps
+    morning_trend = (_window_mean(cs, cnt, cutoff, morning)
+                     - _window_mean(cs, cnt, cutoff - 96, morning)) / scale
+    feats["morning_trend"] = per_day(morning_trend)
+    # A cold spell hits every household at once: the portfolio's own recent change
+    # is a shared weather signal that needs no weather data (other households'
+    # readings before the cutoff only).
+    with warnings.catch_warnings(), np.errstate(invalid="ignore", divide="ignore"):
+        warnings.simplefilter("ignore", RuntimeWarning)
+        shared = {"pf_level_4h": levels["level_4h"], "pf_level_1d": levels["level_1d"],
+                  "pf_trend_1d_7d": levels["level_1d"] / levels["level_7d"],
+                  "pf_morning_trend": morning_trend}
+        for name, values in shared.items():
+            feats[name] = per_day(np.repeat(np.nanmean(values, axis=1, keepdims=True), n_hh, axis=1))
 
     temp = arrays["temperature"]
     cutoff_hour = cutoff // 4
@@ -185,6 +207,10 @@ def build_design(arrays: dict, days: np.ndarray) -> tuple[pd.DataFrame, np.ndarr
     temp_7d = np.stack([np.nanmean(temp[h - 168:h], axis=0) for h in cutoff_hour])
     feats["temp_past_24h"] = np.broadcast_to(temp_24h[:, None, :], (D, 96, n_hh))
     feats["temp_trend"] = np.broadcast_to((temp_24h - temp_7d)[:, None, :], (D, 96, n_hh))
+    morning_hours = morning // 4
+    temp_morning_delta = np.stack([np.nanmean(temp[h - morning_hours:h], axis=0)
+                                   - np.nanmean(temp[h - 24 - morning_hours:h - 24], axis=0) for h in cutoff_hour])
+    feats["temp_morning_delta"] = per_day(temp_morning_delta)
 
     ts = HIST_START + pd.to_timedelta(pos.reshape(-1) * 15, unit="min")
     local = ts.tz_convert("Europe/Berlin")
@@ -201,6 +227,15 @@ def build_design(arrays: dict, days: np.ndarray) -> tuple[pd.DataFrame, np.ndarr
         ((np.asarray(local.weekday).reshape(D, 96) >= 5) !=
          (np.asarray((local - pd.Timedelta("2D")).weekday).reshape(D, 96) >= 5)).astype(np.float32)[:, :, None],
         (D, 96, n_hh))
+    # Public holidays behave like Sundays; the Christmas period is its own regime.
+    # Lagged flags tell the model when a lag day was itself atypical.
+    for name, shift in (("is_holiday", 0), ("lag_d2_is_holiday", 2), ("lag_d7_is_holiday", 7)):
+        dates = (local - pd.Timedelta(days=shift)).date
+        feats[name] = np.broadcast_to(np.fromiter((d in GERMAN_HOLIDAYS for d in dates), np.float32, len(dates))
+                                      .reshape(D, 96)[:, :, None], (D, 96, n_hh))
+    christmas = ((local.month == 12) & (local.day >= 24)) | ((local.month == 1) & (local.day <= 1))
+    feats["christmas_period"] = np.broadcast_to(np.asarray(christmas, np.float32).reshape(D, 96)[:, :, None],
+                                                (D, 96, n_hh))
     for j, name in enumerate(arrays["static_names"]):
         feats[name] = np.broadcast_to(arrays["static"][None, None, :, j], (D, 96, n_hh))
 
