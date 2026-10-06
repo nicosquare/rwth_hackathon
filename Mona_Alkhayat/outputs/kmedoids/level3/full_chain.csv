@@ -1,0 +1,5 @@
+,EUR per household-year
+L0 naive (last week),106.63916335398417
+L0 global model,27.782594082328472
+L1 per-cluster models,27.903088674728544
+L3 per-cluster + newsvendor bid,27.308808123896128

@@ -1,0 +1,9 @@
+,0
+"cost, bid = mean forecast (EUR)",4209.9668349325375
+"cost, bid = median (tau 0.5) (EUR)",4307.067336927288
+"cost, bid = newsvendor tau* 0.625 (EUR)",4120.30287554743
+"cost, best tau in hindsight 0.625 (EUR)",4120.30287554743
+saving of newsvendor vs mean (%),2.1298020364700743
+"share of hours short, mean bid (%)",42.09341586944288
+"share of hours short, newsvendor bid (%)",35.25604952166573
+extra energy bought vs mean bid (%),1.304932318112062
