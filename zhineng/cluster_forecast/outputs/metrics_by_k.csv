@@ -1,0 +1,7 @@
+K,MAE_kWh,RMSE_kWh,nMAE_pct,Bias_pct,nMAE_improvement_vs_baseline_pct,role,silhouette
+1,21.9905,29.5865,6.2754,1.1259,0.0,baseline,
+2,22.1115,29.632,6.3099,1.2147,-0.5503,not used for selection,0.2027
+3,22.0308,29.5345,6.2869,1.2782,-0.1836,not used for selection,0.203
+4,21.8851,29.4735,6.2453,0.8555,0.4791,selected on validation,0.2014
+5,21.7165,29.2679,6.1972,1.295,1.2458,not used for selection,0.1804
+6,22.1617,29.6779,6.3243,1.5368,-0.7786,not used for selection,0.1844

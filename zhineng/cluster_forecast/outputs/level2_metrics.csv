@@ -1,0 +1,7 @@
+K,Role,nMAE_pct,Bias_pct,Daily_energy_nMAE_pct,Evening_peak_MAE_kWh,Price_weighted_MAE_EUR_per_h,Shortfall_MWh_per_yr,Surplus_MWh_per_yr,P95_shortfall_kWh,Imbalance_cost_EUR_per_yr,Imbalance_cost_EUR_per_HH_yr,Imbalance_cost_pct_of_DA_bill,Cost_saving_vs_baseline_pct,Saving_CI95_low_pct,Saving_CI95_high_pct,P(cheaper than baseline),Share_of_days_cheaper
+1,baseline,6.275,1.126,3.174,22.904,1.868,78.587,112.952,46.161,10600.616,32.319,4.04,,,,,
+2,not used for selection,6.31,1.215,3.268,23.048,1.874,77.759,114.834,46.047,10637.029,32.43,4.054,-0.344,-1.511,0.831,0.284,0.476
+3,not used for selection,6.287,1.278,3.302,22.745,1.86,76.439,115.452,46.125,10571.432,32.23,4.029,0.275,-0.93,1.572,0.692,0.558
+4,selected on validation,6.245,0.856,3.268,22.752,1.855,82.254,108.367,46.869,10580.951,32.259,4.033,0.186,-1.589,1.723,0.625,0.519
+5,not used for selection,6.197,1.295,3.3,22.962,1.835,74.813,114.339,44.561,10419.131,31.766,3.971,1.712,0.41,3.005,0.996,0.558
+6,not used for selection,6.324,1.537,3.453,23.125,1.867,73.062,119.968,45.404,10586.755,32.277,4.035,0.131,-1.332,1.547,0.57,0.538
