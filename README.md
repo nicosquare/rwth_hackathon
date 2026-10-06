@@ -1,5 +1,90 @@
 # Bringing the Heat
 
+## Development setup
+
+This project uses [uv](https://docs.astral.sh/uv/) with Python 3.12.
+
+```bash
+uv sync
+uv run jupyter lab
+```
+
+Open `notebooks/01_data_eda.ipynb` for the team-oriented exploratory analysis. To verify that it executes from a clean kernel:
+
+```bash
+uv run jupyter nbconvert --to notebook --execute notebooks/01_data_eda.ipynb \
+  --output 01_data_eda.executed.ipynb --output-dir /tmp
+```
+
+The EDA audits raw 15-minute data quality, temporal and household structure, weather/PV/intervention effects, exact lag relationships, and strictly temporal persistence baselines. It validates the Darts `TimeSeries` interface, while forecasting model selection and procurement optimization remain subsequent work.
+
+## Model ladder
+
+`notebooks/02_model_ladder.ipynb` is the executed, portfolio-first forecasting
+evidence notebook. Its compact inputs live in `artifacts/model_ladder/`; reusable
+forecast-contract, scoring, aggregation, and conformal utilities live in
+`utils/modeling.py`.
+
+Rebuild the checked-in, laptop-friendly evidence run (all validation,
+calibration, and test origins; reduced training-origin density and 40 trees):
+
+```bash
+uv run python -m utils.run_model_ladder --quick
+```
+
+Run the production experiment contract (all daily training origins and 400
+LightGBM estimators):
+
+```bash
+uv run python -m utils.run_model_ladder
+```
+
+### Cluster-ready forecasting
+
+The canonical forecast format remains household-level. This allows the
+clustering team to provide a static table with one `Household_ID` and
+`cluster_id` per household without changing the forecast contract. The shared
+utilities in `utils/modeling.py` validate labels, aggregate forecasts to fixed
+cluster denominators, and produce an auditable fit plan:
+
+```python
+from utils.modeling import aggregate_clusters, cluster_model_plan
+
+cluster_metrics = aggregate_clusters(household_predictions, cluster_labels)
+fit_plan = cluster_model_plan(cluster_labels, training_row_counts)
+```
+
+The default recipe is weather-free: compare persistence baselines with a
+global household-aware Ridge/LightGBM model. A cluster-specific estimator is
+only fitted when its household and training-row thresholds are met; otherwise
+the global model is used explicitly. Weather remains an optional ablation, not
+a production dependency.
+
+Execute and verify the notebook from a clean kernel:
+
+```bash
+uv run jupyter nbconvert --to notebook --execute notebooks/02_model_ladder.ipynb \
+  --output 02_model_ladder.executed.ipynb --output-dir /tmp \
+  --ExecutePreprocessor.timeout=600
+uv run python -m pytest -q
+```
+
+The cluster-ready visualization demo uses the checked-in model-ladder
+artifacts and does not invent cluster assignments:
+
+```bash
+uv run jupyter nbconvert --to notebook --execute \
+  notebooks/03_cluster_ready_forecasting_demo.ipynb \
+  --output 03_cluster_ready_forecasting_demo.executed.ipynb --output-dir /tmp \
+  --ExecutePreprocessor.timeout=600
+```
+
+If the clustering team later provides
+`artifacts/clusters/household_clusters.csv` with one `Household_ID,cluster_id`
+row per household, the notebook will validate the labels and expose the
+cluster-aggregation integration path. Until then, it reports cluster metrics as
+pending rather than creating proxy assignments.
+
 # Challenge for E.ON
 Increasing numbers of prosumers, who are both producers and consumers of energy, are changing the energy landscape.
 With the high volatility of energy production for renewable energy sources, the energy consumption patterns are changing as well.
