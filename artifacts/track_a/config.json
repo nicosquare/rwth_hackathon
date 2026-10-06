@@ -1,0 +1,37 @@
+{
+  "lightgbm": {
+    "n_estimators": 600,
+    "learning_rate": 0.05,
+    "num_leaves": 63,
+    "min_child_samples": 200,
+    "subsample": 0.7,
+    "subsample_freq": 1,
+    "colsample_bytree": 0.8,
+    "reg_lambda": 1.0,
+    "random_state": 42,
+    "n_jobs": 16,
+    "verbosity": -1
+  },
+  "max_train_rows": 4000000,
+  "groups": {
+    "holidays": [
+      "is_holiday",
+      "lag_d2_is_holiday",
+      "lag_d7_is_holiday",
+      "christmas_period"
+    ],
+    "morning": [
+      "morning_trend",
+      "temp_morning_delta"
+    ],
+    "portfolio": [
+      "pf_level_4h",
+      "pf_level_1d",
+      "pf_trend_1d_7d",
+      "pf_morning_trend"
+    ]
+  },
+  "feature_set": "trackA_v1",
+  "execution_mode": "full",
+  "note": "validation folds only; test untouched"
+}

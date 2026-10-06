@@ -1,5 +1,61 @@
 # Bringing the Heat
 
+## Development setup
+
+This project uses [uv](https://docs.astral.sh/uv/) with Python 3.12.
+
+```bash
+uv sync
+uv run jupyter lab
+```
+
+Open `notebooks/01_data_eda.ipynb` for the team-oriented exploratory analysis. To verify that it executes from a clean kernel:
+
+```bash
+uv run jupyter nbconvert --to notebook --execute notebooks/01_data_eda.ipynb \
+  --output 01_data_eda.executed.ipynb --output-dir /tmp
+```
+
+The EDA audits raw 15-minute data quality, temporal and household structure, weather/PV/intervention effects, exact lag relationships, and strictly temporal persistence baselines. It validates the Darts `TimeSeries` interface, while forecasting model selection and procurement optimization remain subsequent work.
+
+## Day-ahead contract
+
+Every notebook and script shares one information set, `DAY_AHEAD` in
+`utils/modeling.py`: the 96 quarter-hours of UTC delivery day D are forecast
+from data strictly before **10:00 UTC on D-1**, ahead of the 12:00 local EPEX
+day-ahead gate closure. The same slot on D-1 is therefore only known for slots
+before 10:00 UTC; D-2 and older are always known.
+
+## Level 0: one global household model
+
+`utils/level0.py` trains one LightGBM model for all households. Targets and
+lags are divided by each household's mean load over the 28 days before the
+cutoff, so households of any size (and with any history length) share one
+model. Features are same-slot lags and 7-day/4-week slot statistics known at
+the cutoff, recent load level, past-only temperature, calendar, and survey
+metadata; no realised target-day weather is used.
+
+Evaluation uses expanding-window folds over all history since autumn 2020:
+two validation folds (summer 2022, winter 2022/23) select the model, and the
+test window (2023-05-29 to 2024-02-28) is scored once. Each household is
+scored on identical rows for every model; the main metrics are per-household
+error relative to the daily/weekly persistence blend and the portfolio WAPE.
+
+```bash
+uv run python -m utils.level0 --quick   # ~5 min smoke run, 150 trees, 1M training rows
+uv run python -m utils.level0           # full run, writes artifacts/level0/
+uv run python -m pytest -q
+uv run jupyter nbconvert --to notebook --execute notebooks/02_level0_day_ahead.ipynb \
+  --output 02_level0_day_ahead.executed.ipynb --output-dir /tmp
+```
+
+`notebooks/02_level0_day_ahead.ipynb` presents the result from
+`artifacts/level0/`: per-household skill, season stability, PV breakdown,
+error by slot, and the reasons for the selected model.
+
+The earlier portfolio-first model ladder (midnight issuance, origin-anchored
+lags) was removed after this reset; it remains available in commit `542b2eb`.
+
 # Challenge for E.ON
 Increasing numbers of prosumers, who are both producers and consumers of energy, are changing the energy landscape.
 With the high volatility of energy production for renewable energy sources, the energy consumption patterns are changing as well.
