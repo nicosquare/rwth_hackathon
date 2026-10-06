@@ -8,14 +8,19 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "catboost>=1.2.10",
     "darts[notorch]>=0.47,<0.48",
+    "holidays>=0.106",
     "lightgbm>=4.6,<5",
     "matplotlib>=3.10,<4",
     "numpy>=2.2,<3",
+    "optuna>=5.0.0",
     "pandas>=2.2,<3",
     "polars>=1.36,<2",
     "scikit-learn>=1.7,<2",
     "seaborn>=0.13,<0.14",
+    "torch>=2.14.1",
+    "xgboost>=3.4.1",
 ]
 
 [dependency-groups]

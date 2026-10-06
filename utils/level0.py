@@ -247,6 +247,36 @@ def subset(data: dict, rows: np.ndarray) -> dict[str, object]:
             "scale": data["scale"][rows], "index": data["index"][rows].reset_index(drop=True)}
 
 
+CACHE_DIR = ROOT / "artifacts" / "cache"
+
+
+def save_design(data: dict, path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    data["X"].to_parquet(path / "X.parquet", index=False)
+    data["index"].to_parquet(path / "index.parquet", index=False)
+    np.save(path / "y.npy", data["y"]); np.save(path / "scale.npy", data["scale"])
+
+
+def load_design(path: Path) -> dict[str, object]:
+    return {"X": pd.read_parquet(path / "X.parquet"), "index": pd.read_parquet(path / "index.parquet"),
+            "y": np.load(path / "y.npy"), "scale": np.load(path / "scale.npy")}
+
+
+def cached_designs(name: str, arrays: dict | None = None) -> tuple[dict, dict, dict]:
+    """(arrays, pre-test rows, test rows) for a named, frozen feature set.
+
+    Experiments compare against a fixed feature set, so the design is built once
+    per name and reloaded afterwards; delete the folder to rebuild it.
+    """
+    path = CACHE_DIR / name
+    if arrays is None:
+        arrays = load_arrays()
+    if not (path / "test" / "y.npy").exists():
+        save_design(prepare(arrays, days_between(FIRST_DAY, FOLDS["test"][0])), path / "history")
+        save_design(prepare(arrays, days_between(*FOLDS["test"])), path / "test")
+    return arrays, load_design(path / "history"), load_design(path / "test")
+
+
 # ------------------------------------------------------------------------- models
 
 def baseline_predictions(X: pd.DataFrame, scale: np.ndarray, weight: float) -> dict[str, np.ndarray]:
