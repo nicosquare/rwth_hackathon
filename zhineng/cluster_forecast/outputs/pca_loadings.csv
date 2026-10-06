@@ -1,0 +1,10 @@
+,PC1,PC2
+temp_slope_rel,-0.424,-0.248
+temp_r2,-0.284,-0.28
+summer_winter_ratio,0.431,0.279
+pv_midday_ratio,0.43,-0.113
+pv_sun_corr,0.359,-0.002
+share_night,-0.23,0.61
+share_morning,-0.092,-0.443
+share_midday,0.42,-0.395
+share_evening,-0.045,-0.213

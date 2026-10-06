@@ -1,0 +1,4 @@
+Model,nMAE_pct,Bias_pct,Daily_energy_nMAE_pct,Evening_peak_MAE_kWh,Shortfall_MWh_per_yr,Surplus_MWh_per_yr,P95_shortfall_kWh,Imbalance_cost_EUR_per_yr,Imbalance_cost_EUR_per_HH_yr,Imbalance_cost_pct_of_energy_bill,Cost_saving_vs_baseline_pct,Saving_CI95_low_pct,Saving_CI95_high_pct,P(cheaper than baseline),Share_of_days_cheaper
+Baseline (no clustering),6.397,1.246,3.302,22.925,77.246,114.621,46.098,9135.877,28.911,3.161,,,,,
+Clustered K=3,6.355,1.398,3.293,22.827,74.335,116.278,44.805,9077.287,28.726,3.141,0.641,-0.461,1.69,0.863,0.559
+Clustered K=5,6.302,1.281,3.4,22.809,75.296,113.728,44.515,9000.738,28.483,3.114,1.479,0.251,2.736,0.992,0.542

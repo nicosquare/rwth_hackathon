@@ -1,0 +1,9 @@
+{
+  "selected_k": 4,
+  "lowest_cost_k": 4,
+  "rule": "smallest K with validation cost <= 1.005 x lowest",
+  "validation_window": [
+    "2022-09-15 00:00:00+00:00",
+    "2023-03-15 00:00:00+00:00"
+  ]
+}
