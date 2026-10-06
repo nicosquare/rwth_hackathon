@@ -18,72 +18,43 @@ uv run jupyter nbconvert --to notebook --execute notebooks/01_data_eda.ipynb \
 
 The EDA audits raw 15-minute data quality, temporal and household structure, weather/PV/intervention effects, exact lag relationships, and strictly temporal persistence baselines. It validates the Darts `TimeSeries` interface, while forecasting model selection and procurement optimization remain subsequent work.
 
-## Model ladder
+## Day-ahead contract
 
-`notebooks/02_model_ladder.ipynb` is the executed, portfolio-first forecasting
-evidence notebook. Its compact inputs live in `artifacts/model_ladder/`; reusable
-forecast-contract, scoring, aggregation, and conformal utilities live in
-`utils/modeling.py`.
+Every notebook and script shares one information set, `DAY_AHEAD` in
+`utils/modeling.py`: the 96 quarter-hours of UTC delivery day D are forecast
+from data strictly before **10:00 UTC on D-1**, ahead of the 12:00 local EPEX
+day-ahead gate closure. The same slot on D-1 is therefore only known for slots
+before 10:00 UTC; D-2 and older are always known.
 
-Rebuild the checked-in, laptop-friendly evidence run (all validation,
-calibration, and test origins; reduced training-origin density and 40 trees):
+## Level 0: one global household model
 
-```bash
-uv run python -m utils.run_model_ladder --quick
-```
+`utils/level0.py` trains one LightGBM model for all households. Targets and
+lags are divided by each household's mean load over the 28 days before the
+cutoff, so households of any size (and with any history length) share one
+model. Features are same-slot lags and 7-day/4-week slot statistics known at
+the cutoff, recent load level, past-only temperature, calendar, and survey
+metadata; no realised target-day weather is used.
 
-Run the production experiment contract (all daily training origins and 400
-LightGBM estimators):
-
-```bash
-uv run python -m utils.run_model_ladder
-```
-
-### Cluster-ready forecasting
-
-The canonical forecast format remains household-level. This allows the
-clustering team to provide a static table with one `Household_ID` and
-`cluster_id` per household without changing the forecast contract. The shared
-utilities in `utils/modeling.py` validate labels, aggregate forecasts to fixed
-cluster denominators, and produce an auditable fit plan:
-
-```python
-from utils.modeling import aggregate_clusters, cluster_model_plan
-
-cluster_metrics = aggregate_clusters(household_predictions, cluster_labels)
-fit_plan = cluster_model_plan(cluster_labels, training_row_counts)
-```
-
-The default recipe is weather-free: compare persistence baselines with a
-global household-aware Ridge/LightGBM model. A cluster-specific estimator is
-only fitted when its household and training-row thresholds are met; otherwise
-the global model is used explicitly. Weather remains an optional ablation, not
-a production dependency.
-
-Execute and verify the notebook from a clean kernel:
+Evaluation uses expanding-window folds over all history since autumn 2020:
+two validation folds (summer 2022, winter 2022/23) select the model, and the
+test window (2023-05-29 to 2024-02-28) is scored once. Each household is
+scored on identical rows for every model; the main metrics are per-household
+error relative to the daily/weekly persistence blend and the portfolio WAPE.
 
 ```bash
-uv run jupyter nbconvert --to notebook --execute notebooks/02_model_ladder.ipynb \
-  --output 02_model_ladder.executed.ipynb --output-dir /tmp \
-  --ExecutePreprocessor.timeout=600
+uv run python -m utils.level0 --quick   # ~5 min smoke run, 150 trees, 1M training rows
+uv run python -m utils.level0           # full run, writes artifacts/level0/
 uv run python -m pytest -q
+uv run jupyter nbconvert --to notebook --execute notebooks/02_level0_day_ahead.ipynb \
+  --output 02_level0_day_ahead.executed.ipynb --output-dir /tmp
 ```
 
-The cluster-ready visualization demo uses the checked-in model-ladder
-artifacts and does not invent cluster assignments:
+`notebooks/02_level0_day_ahead.ipynb` presents the result from
+`artifacts/level0/`: per-household skill, season stability, PV breakdown,
+error by slot, and the reasons for the selected model.
 
-```bash
-uv run jupyter nbconvert --to notebook --execute \
-  notebooks/03_cluster_ready_forecasting_demo.ipynb \
-  --output 03_cluster_ready_forecasting_demo.executed.ipynb --output-dir /tmp \
-  --ExecutePreprocessor.timeout=600
-```
-
-If the clustering team later provides
-`artifacts/clusters/household_clusters.csv` with one `Household_ID,cluster_id`
-row per household, the notebook will validate the labels and expose the
-cluster-aggregation integration path. Until then, it reports cluster metrics as
-pending rather than creating proxy assignments.
+The earlier portfolio-first model ladder (midnight issuance, origin-anchored
+lags) was removed after this reset; it remains available in commit `542b2eb`.
 
 # Challenge for E.ON
 Increasing numbers of prosumers, who are both producers and consumers of energy, are changing the energy landscape.

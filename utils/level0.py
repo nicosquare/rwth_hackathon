@@ -2,7 +2,8 @@
 
 Run from the repository root with ``uv run python -m utils.level0``.
 
-Differences to ``utils.run_model_ladder`` that matter for household accuracy:
+Differences to the earlier model ladder (removed; see commit 542b2eb) that matter
+for household accuracy:
 
 * Real day-ahead information set (``utils.modeling.DAY_AHEAD``): the forecast
   for UTC delivery day D uses only data before 10:00 UTC on D-1, ahead of the

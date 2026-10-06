@@ -7,6 +7,8 @@ from pathlib import Path
 
 import polars as pl
 
+from utils.modeling import DAY_AHEAD
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
@@ -315,15 +317,22 @@ def add_exact_lags(
 def temporal_baseline_predictions(
     panel: pl.DataFrame, test_days: int = 28
 ) -> tuple[pl.DataFrame, datetime]:
-    """Create leakage-safe rolling persistence and fixed-training climatology forecasts."""
+    """Create persistence and climatology forecasts under the day-ahead contract.
+
+    Only data before the bid cutoff (``DAY_AHEAD``: 10:00 UTC on D-1) is used:
+    "previous day" takes the D-1 slot when it was already observed and the D-2
+    slot otherwise, and the climatology is fitted before the first cutoff.
+    """
     end = panel.select(pl.col("timestamp_utc").max()).item()
     if end is None:
         raise ValueError("Cannot evaluate baselines on an empty panel")
-    test_start = end - timedelta(days=test_days) + timedelta(minutes=15)
+    test_start = (end - timedelta(days=test_days)).replace(hour=0, minute=0, second=0, microsecond=0) \
+        + timedelta(days=1)
+    first_cutoff = DAY_AHEAD.cutoff(test_start).to_pydatetime()
 
-    lagged = add_exact_lags(panel, lags=(96, 672))
+    lagged = add_exact_lags(panel, lags=(96, 192, 672))
     historical_mean = (
-        panel.filter(pl.col("timestamp_utc") < test_start)
+        panel.filter(pl.col("timestamp_utc") < first_cutoff)
         .group_by("Household_ID", "local_slot")
         .agg(
             pl.col("kWh_received_Total")
@@ -334,12 +343,14 @@ def temporal_baseline_predictions(
     predictions = (
         lagged.filter(pl.col("timestamp_utc") >= test_start)
         .join(historical_mean, on=["Household_ID", "local_slot"], how="left")
-        .rename(
-            {
-                "lag_96": "prediction_previous_day",
-                "lag_672": "prediction_previous_week",
-            }
+        .with_columns(
+            pl.when(pl.col("timestamp_utc").dt.hour() < DAY_AHEAD.data_cutoff_hour_utc)
+            .then(pl.col("lag_96"))
+            .otherwise(pl.col("lag_192"))
+            .alias("prediction_previous_day")
         )
+        .rename({"lag_672": "prediction_previous_week"})
+        .drop("lag_96", "lag_192")
     )
     return predictions, test_start
 

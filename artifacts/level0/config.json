@@ -1,0 +1,48 @@
+{
+  "contract": {
+    "data_cutoff_hour_utc": 10,
+    "steps_per_day": 96,
+    "gap_steps": 56
+  },
+  "history_start": "2020-09-01T00:00:00+00:00",
+  "first_delivery_day": "2020-10-06T00:00:00+00:00",
+  "folds": {
+    "val_summer": [
+      "2022-05-29T00:00:00+00:00",
+      "2022-11-28T00:00:00+00:00"
+    ],
+    "val_winter": [
+      "2022-11-28T00:00:00+00:00",
+      "2023-05-29T00:00:00+00:00"
+    ],
+    "test": [
+      "2023-05-29T00:00:00+00:00",
+      "2024-02-28T00:00:00+00:00"
+    ]
+  },
+  "fold_scheme": "expanding window: train on delivery days fully observed before the first evaluated bid cutoff",
+  "scale_days": 28,
+  "lightgbm": {
+    "n_estimators": 600,
+    "learning_rate": 0.05,
+    "num_leaves": 63,
+    "min_child_samples": 200,
+    "subsample": 0.7,
+    "subsample_freq": 1,
+    "colsample_bytree": 0.8,
+    "reg_lambda": 1.0,
+    "random_state": 42,
+    "n_jobs": 16,
+    "verbosity": -1
+  },
+  "max_train_rows": 4000000,
+  "ensemble_previous_day_weight": {
+    "val_summer": 0.4906941893608015,
+    "val_winter": 0.46107812795238357,
+    "test": 0.47803143312347174
+  },
+  "selected_model": "lgb_global_l2",
+  "selection_rule": "median household nMAE on pooled validation folds among mean-forecast models",
+  "households_in_data": 409,
+  "execution_mode": "full"
+}

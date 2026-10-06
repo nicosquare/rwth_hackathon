@@ -23,7 +23,7 @@ The main conclusions are:
 - That common period runs from September 2023 through February 2024. Seasonal conclusions therefore mostly concern autumn and winter.
 - The baseline test covers the final 90 days and is consequently dominated by winter behavior.
 - Realized target-day weather is useful for diagnosing potential signal, but is not a valid production feature. Operational backtesting requires the weather forecast available at each historical forecast origin.
-- The working assumption is that all 96 intervals of day D are forecast at 00:00. The actual bidding cutoff must be confirmed.
+- Team decision (`DAY_AHEAD` in `utils/modeling.py`): all 96 intervals of UTC day D are forecast from data before 10:00 UTC on D-1, ahead of the 12:00 local EPEX gate closure.
 
 ## 1. Coverage and data quality affect the forecasting design
 
@@ -81,7 +81,7 @@ The exact lag analysis gives:
 
 ![Lag structure](assets/eda/03_lag_structure.png)
 
-The 15-minute relationship is strongest, but it is not directly available for every point in a one-shot 96-step forecast. Using it recursively would feed predictions back into the model and accumulate error. Same-time-yesterday and same-time-last-week are weaker but operationally safer at a midnight origin.
+The 15-minute relationship is strongest, but it is not directly available for every point in a one-shot 96-step forecast. Using it recursively would feed predictions back into the model and accumulate error. Same-time-last-week is always available; under the 10:00 UTC D-1 cutoff, same-time-yesterday is only available for slots before 10:00 UTC, so D-2 and multi-day slot statistics carry most of the signal.
 
 ### Forecasting implication
 
