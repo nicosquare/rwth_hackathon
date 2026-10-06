@@ -418,12 +418,29 @@ def run(output_dir: Path = ARTIFACT_DIR, quick: bool = False,
                   .groupby("horizon_step").mean().reset_index())
     print(by_pv.round(3).to_string(index=False))
 
+    # Forecast traces for qualitative inspection: the full test portfolio, and
+    # the median-skill household of each PV group (chosen for display only).
+    shown = (winner, reference, "previous_day")
+    traces = test_eval["index"][["delivery_day", "horizon_step", "hh"]].assign(
+        actual=test_eval["y"], **{n: test_preds[n] for n in shown})
+    portfolio_traces = (traces.drop(columns="hh").groupby(["delivery_day", "horizon_step"]).sum()
+                        .join(traces.groupby(["delivery_day", "horizon_step"]).size().rename("households"))
+                        .reset_index())
+    col = f"skill_{winner}"
+    sample_ids = [g.loc[(g[col] - g[col].median()).abs().idxmin(), "Household_ID"]
+                  for _, g in board.groupby("PV_Status")]
+    sample_hh = np.flatnonzero(np.isin(ids, sample_ids))
+    household_traces = traces[traces.hh.isin(sample_hh)].assign(
+        Household_ID=lambda f: ids[f.hh], PV_Status=lambda f: pv[f.hh]).drop(columns="hh")
+
     pd.concat([v[0] for k, v in scored.items() if k in ("validation", "test")], ignore_index=True) \
         .to_parquet(output_dir / "household_metrics.parquet", index=False)
     summary.to_csv(output_dir / "household_summary.csv", index=False)
     portfolio.to_csv(output_dir / "portfolio_metrics.csv", index=False)
     by_pv.to_csv(output_dir / "pv_summary.csv", index=False)
     by_horizon.to_csv(output_dir / "horizon_mae.csv", index=False)
+    portfolio_traces.to_parquet(output_dir / "test_portfolio_forecasts.parquet", index=False)
+    household_traces.to_parquet(output_dir / "test_household_forecasts.parquet", index=False)
     if importance is not None:
         importance.sort_values("gain", ascending=False).to_csv(output_dir / "feature_importance.csv", index=False)
     (output_dir / "config.json").write_text(json.dumps({
