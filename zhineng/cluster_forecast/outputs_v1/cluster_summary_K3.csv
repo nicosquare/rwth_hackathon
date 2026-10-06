@@ -1,0 +1,4 @@
+Cluster,N,mean_daily_kwh,temp_slope_rel,temp_r2,summer_winter_ratio,pv_midday_ratio,pv_sun_corr,share_night,share_morning,share_midday,share_evening,PV_share,N_PV_known,LivingArea_m2,Residents,GroundSourceHP_share,FloorHeating_share,DHWbyHP_share,EV_share
+1,197,34.189,7.972,0.704,0.308,0.867,-0.183,0.275,0.168,0.244,0.313,0.345,113,186.398,2.786,0.301,0.814,1.0,0.271
+2,70,32.7,3.97,0.327,0.589,0.973,-0.129,0.24,0.151,0.264,0.345,0.351,37,221.0,2.957,0.435,0.909,1.0,0.375
+3,49,25.923,10.262,0.582,0.223,0.257,-0.4,0.299,0.17,0.155,0.376,1.0,41,201.277,3.043,0.489,0.739,1.0,0.436

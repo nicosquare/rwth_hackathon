@@ -1,0 +1,24 @@
+,Baseline (K=1),Clustered (K=4)
+Coverage_80pct_interval,0.7942849019050326,0.7928632357122548
+Coverage_90pct_interval,0.8903895365368212,0.8926642024452659
+Mean_rel_width_80pct,0.2004778070277575,0.2004219490533296
+Mean_pinball_loss_kWh,7.005003612613378,6.94446022161647
+Mean_tau_star,0.5462719203463571,0.5462719203463571
+Cost_EUR_per_HH_yr [Point forecast],29.857087546260882,29.648275770216408
+Cost_EUR_per_HH_yr [Median (bias-corrected)],30.18821705983063,29.958646079297605
+Cost_EUR_per_HH_yr [Newsvendor tau*],29.93584400745281,29.740593582925086
+Saving_vs_point_pct [Median (bias-corrected)],-1.1090482722291366,-1.0468410085182152
+Saving_CI95 [Median (bias-corrected)],"[-3.29, +1.28]","[-3.30, +1.33]"
+P(cheaper) [Median (bias-corrected)],0.164,0.1945
+Saving_vs_point_pct [Newsvendor tau*],-0.26377810987057393,-0.31137666629982075
+Saving_CI95 [Newsvendor tau*],"[-1.90, +1.57]","[-2.30, +1.83]"
+P(cheaper) [Newsvendor tau*],0.363,0.36
+Coverage_80pct_spring_autumn,0.7947192264782447,0.793603570100409
+Coverage_80pct_summer,0.7921195652173914,0.7907608695652174
+Coverage_80pct_winter,0.7959756668226485,0.7941038839494619
+Shortfall_MWh_yr [point],78.40158763749754,81.89789792311362
+Surplus_MWh_yr [point],99.78144636094879,94.54598668106352
+Shortfall_MWh_yr [tau*],81.26196325205747,81.37808204437403
+Surplus_MWh_yr [tau*],96.78985029346762,95.7564071769809
+Saving_vs_baseline_tau*_pct,,0.652229562925012
+Saving_vs_baseline_tau*_CI95,,"[-1.35, +2.61]"
